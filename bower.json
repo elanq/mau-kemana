@@ -1,0 +1,24 @@
+{
+  "name": "MauKemana",
+  "version": "0.0.1",
+  "homepage": "https://github.com/elanq/mau-kemana",
+  "authors": [
+    "Elan Qisthi <elanqisthi@gmail.com>"
+  ],
+  "description": "This app guides user to show routes from his/her current place to destitation place",
+  "keywords": [
+    "polymer",
+    "7weekcodechallege",
+    "maps",
+    "bing"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
