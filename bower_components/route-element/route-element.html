@@ -1,0 +1,215 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../core-label/core-label.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../core-ajax/core-xhr.html">
+
+<polymer-element name="route-element">
+<template>
+<style>
+    .card {
+        background: #ffffff;
+        padding: 15px;
+        margin: 1em 10px 15px 10px;
+        box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
+        border-radius: 2px;
+    }
+    paper-checkbox {
+      padding: 15px 20px 20px 0;
+    }  
+    
+    paper-checkbox.blue::shadow #ink[checked] {
+      color: #BBDEFB;
+    }
+
+    paper-checkbox.blue::shadow #checkbox.checked {
+      background-color: #2196F3;
+      border-color: #2196F3;
+    }
+</style>
+<div class="card">
+    <core-xhr id="xhr"></core-xhr>
+    <h4>Search location</h4>
+    <paper-input-decorator flex label="Start">
+      <input is="core-input" id="startLocation" floatinglabel>      
+    </paper-input-decorator>
+    <core-label horizontal layout>
+        <paper-checkbox for id="locationCheckbox" on-click="{{onLocChange}}"></paper-checkbox>
+        <div vertical layout>
+          <h4>USE DEVICE CURRENT LOCATION</h4>        
+        </div>
+      </core-label>
+    <paper-input-decorator flex label="Destination" i>
+      <input is="core-input"  id="finishLocation">
+    </paper-input-decorator>
+
+    <paper-button id="searchButton"  on-click="{{searchClicked}}" class="ok-button">SEARCH</paper-button>
+    <paper-button id="cancelButton" on-click="{{cancelClicked}}" class="cancel-button">CANCEL</paper-button/>
+</div>
+<div class="card" id="routes">
+
+</div>
+</template>
+<script>
+    var xhr;
+    var startInput;
+    var finishInput;
+    var locationCheckbox;
+    var startPosition;
+    var finishPosition;
+
+    var searchResult;
+
+    var onStartLocationSearch;
+    var onFinishLocationSearch;
+    var onRoute;
+    Polymer({
+    ready: function()
+    {
+      xhr  = this.$.xhr;
+      startInput = this.$.startLocation;
+      finishInput = this.$.finishLocation;
+      locationCheckbox = this.$.locationCheckbox;
+
+      onStartLocationSearch = this.onStartLocationSearch;
+      onFinishLocationSearch = this.onFinishLocationSearch;
+      onRoute = this.onRoute;
+    },    
+    onRoute : function(e)
+    {
+        //clear any elements
+        map.entities.clear();
+
+        var routes = new Array();
+        var res = JSON.parse(e);
+        var routing;
+        if(res.status=="ok")
+        {
+          routing = res.routingresults[0];
+          for(var i=0;i<routing.steps.length;i++)
+          {
+            for(var j=0;j<routing.steps[i][2].length; j++)
+            {              
+              var route = routing.steps[i][2][j];
+              var temp = route.split(',');
+              var lat = temp[0];
+              var lng = temp[1];
+              routes.push(new Microsoft.Maps.Location(lat, lng));
+              //add some cards in route view              
+            }
+          }
+          //add polyline          
+          var routeLine = new Microsoft.Maps.Polyline(routes);          
+          map.entities.push(routeLine);
+          //add start pin
+          var startPin = new Microsoft.Maps.Pushpin(routes[0], {draggable : false});
+          map.entities.push(startPin);
+          //add finish pin
+          var finishPin = new Microsoft.Maps.Pushpin(routes[routes.length-1], {draggable : false});
+          map.entities.push(finishPin);
+          var currentRoute = routing.steps;
+        }   
+    },
+    searchClicked: function()
+    {
+      if(!locationCheckbox.checked)
+      {
+        var startQuery = startInput.value;                
+        var startSearchParam = {
+          version : 2,
+          mode : "searchplace",
+          region : "bdo",
+          querystring : startQuery,
+          apikey : "EA38EE71463C270"
+        };
+        var requestOptions = {
+            url : "http://kiri.travel/handle.php",
+            params : startSearchParam,
+            responseType : "application/json",
+            callback : onStartLocationSearch
+          };          
+        if(startInput.value!="")
+        {
+          xhr.request(requestOptions);          
+        }      
+      }
+      //search destination position
+      var finishQuery = finishInput.value;
+      var finishSearchParam = {
+          version : 2,
+          mode : "searchplace",
+          region : "bdo",
+          querystring : finishQuery,
+          apikey : "EA38EE71463C270" 
+      };
+      var requestOptions = {
+        url : "http://kiri.travel/handle.php",
+            params : finishSearchParam,
+            responseType : "application/json",
+            callback : onFinishLocationSearch
+      }
+      if(finishInput.value!="")
+      {
+          xhr.request(requestOptions);          
+      }            
+    },
+    onLocChange : function()
+    {
+      if(locationCheckbox.checked)
+      {
+        startInput.disabled = 0;        
+      }else{
+        startInput.disabled = 1;
+        startPosition = currentPosition;
+      }      
+    },
+    onStartLocationSearch : function(e)
+    {      
+      var res = JSON.parse(e);
+      console.log(res);
+      if(res.status=="ok")
+      {
+        searchResult = res.searchresult[0];        
+        startInput.value = searchResult.placename;
+        var temp = searchResult.location.split(',');
+        var lat = temp[0];
+        var lng = temp[1];
+        startPosition = new Microsoft.Maps.Location(lat, lng);
+      }
+    },
+    onFinishLocationSearch : function(e)
+    {      
+      var res = JSON.parse(e);
+      console.log(res);
+      if(res.status=="ok")
+      {
+        searchResult = res.searchresult[0];        
+        finishInput.value = searchResult.placename;
+        var temp = searchResult.location.split(',');
+        var lat = temp[0];
+        var lng = temp[1];
+        finishPosition = new Microsoft.Maps.Location(lat, lng);
+
+        //request for routing
+        var params = {
+              version : 2,
+              mode : "findroute",
+              locale : "id",
+              presentation : "desktop",
+              apikey : "EA38EE71463C270",
+              start : startPosition.latitude+","+startPosition.longitude,
+              finish : finishPosition.latitude+","+finishPosition.longitude
+        };
+        var requestOptions = {
+              url : "http://kiri.travel/handle.php",
+              params : params,
+              responseType : "application/json",
+              callback : onRoute
+        };          
+        xhr.request(requestOptions);
+      }
+    }
+    });
+</script>
+</polymer-element>

@@ -1,0 +1,84 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../core-ajax/core-xhr.html">
+<link rel="import" href="../paper-fab/paper-fab.html">
+
+<polymer-element name="map-element">  
+  <template>
+    <style>    
+      paper-fab{
+        color: white;
+        position: fixed;
+        bottom: 0;
+        right: 10%;
+        top:80%;
+      }
+    </style>
+    <core-xhr id="xhr"></core-xhr>
+    <div id="mapView">      
+    </div>
+    <paper-fab icon="explore" on-click="{{onCurrentLocationClicked}}"></paper-fab>
+  </template>  
+  <script>
+    var pos;    
+    var mapView;        
+    var onRoute;
+    var mapError;
+    Polymer({
+      ready: function()
+      {      
+        mapView = this.$.mapView;  
+        xhr = this.$.xhr;
+
+        onRoute = this.onRoute;
+        mapError = this.onMapError;
+
+        navigator.geolocation.getCurrentPosition(this.onSuccess, this.onMapError,{enableHighAccuracy: true});
+                       
+      },
+      onMapError : function(error)
+      {
+        alert('code: '    + error.code    + '\n' +
+          'message: ' + error.message + '\n');
+      },
+      onCurrentLocationClicked : function()
+      {
+        //clear any elements
+        map.entities.clear();
+        var onCurrentLocSuccess = function(position)
+        {
+          map.setView({center: new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude), zoom:15});
+          //add pin
+          var pin = new Microsoft.Maps.Pushpin(new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude), {draggable : false});
+          map.entities.push(pin);
+          currentPosition = new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude);
+        };
+        navigator.geolocation.getCurrentPosition(onCurrentLocSuccess, mapError,{enableHighAccuracy: true});        
+      },
+      onRoute : function(e)
+      {
+             
+      },
+      onSuccess : function(position)
+      {        
+          pos = position;
+          var mapOptions = {
+            credentials: "Aod1iTSxlbk4TbdGUEP-mMZ9kjL-rDdjOu090gvs2VQmOGtimp7ymSkxF2M6plDd",
+            mapTypeId: Microsoft.Maps.MapTypeId.road,
+            center: new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude),
+            zoom: 15,            
+            showMapTypeSelector:false,
+            fixedMapPosition:true
+          };          
+          //initialize map
+          map = new Microsoft.Maps.Map(mapView, mapOptions);
+          
+          //add pin
+          var pin = new Microsoft.Maps.Pushpin(map.getCenter(), {draggable : false});
+          map.entities.push(pin);
+          currentPosition = new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude);
+          
+          
+        }      
+    });
+  </script>
+</polymer-element>
