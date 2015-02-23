@@ -1,6 +1,7 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../core-ajax/core-xhr.html">
 <link rel="import" href="../paper-fab/paper-fab.html">
+<link rel="import" href="../paper-toast/paper-toast.html">
 
 <polymer-element name="map-element">  
   <template>
@@ -16,7 +17,8 @@
     <core-xhr id="xhr"></core-xhr>
     <div id="mapView">      
     </div>
-    <paper-fab icon="explore" on-click="{{onCurrentLocationClicked}}"></paper-fab>
+    <paper-fab icon="explore" on-click="{{onLoadCurrentLocation}}"></paper-fab>
+    <paper-toast id="mapMessage"></paper-toast>
   </template>  
   <script>
     var pos;    
@@ -28,57 +30,57 @@
       {      
         mapView = this.$.mapView;  
         xhr = this.$.xhr;
-
-        onRoute = this.onRoute;
+        onRoute = this.onRoute;        
+        onLoadMap = this.onLoadMap;
         mapError = this.onMapError;
-
-        navigator.geolocation.getCurrentPosition(this.onSuccess, this.onMapError,{enableHighAccuracy: true});
+        loadCurrentLoc = this.onLoadCurrentLocation();
+        mapMessage = this.$.mapMessage;
+        //load microsoft map module
+        Microsoft.Maps.loadModule('Microsoft.Maps.Themes.BingTheme', { callback: onLoadMap });
                        
       },
       onMapError : function(error)
       {
-        alert('code: '    + error.code    + '\n' +
-          'message: ' + error.message + '\n');
+
+        console.log(error);
+        mapMessage.text = "Error getting your location, please try to turn on your GPS";
+        mapMessage.show();
+        map.setView({center: new Microsoft.Maps.Location("-6.914864", "107.608242"), zoom:15});        
+        currentLocation = null;
+        
       },
-      onCurrentLocationClicked : function()
+      onLoadMap : function()
+      {                         
+          var mapOptions = {
+            credentials: "Aod1iTSxlbk4TbdGUEP-mMZ9kjL-rDdjOu090gvs2VQmOGtimp7ymSkxF2M6plDd",
+            mapTypeId: Microsoft.Maps.MapTypeId.road,
+            // center: new Microsoft.Maps.Location("-6.914864", "107.608242"),
+            zoom: 15,            
+            showMapTypeSelector:false,
+            fixedMapPosition:true            
+          };          
+          //initialize map
+          map = new Microsoft.Maps.Map(mapView, mapOptions);
+          
+          //load device location
+          loadCurrentLoc;          
+      },
+      onLoadCurrentLocation : function()
       {
-        //clear any elements
-        map.entities.clear();
         var onCurrentLocSuccess = function(position)
         {
           map.setView({center: new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude), zoom:15});
           //add pin
           var pin = new Microsoft.Maps.Pushpin(new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude), {draggable : false});
+          pin.Title = "current position";
           map.entities.push(pin);
-          currentPosition = new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude);
+          currentPosition = new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude);          
+          console.log("current location "+currentPosition);
+          mapMessage.text = "Successfuly load your current location " +currentPosition;
+          mapMessage.show();
         };
-        navigator.geolocation.getCurrentPosition(onCurrentLocSuccess, mapError,{enableHighAccuracy: true});        
-      },
-      onRoute : function(e)
-      {
-             
-      },
-      onSuccess : function(position)
-      {        
-          pos = position;
-          var mapOptions = {
-            credentials: "Aod1iTSxlbk4TbdGUEP-mMZ9kjL-rDdjOu090gvs2VQmOGtimp7ymSkxF2M6plDd",
-            mapTypeId: Microsoft.Maps.MapTypeId.road,
-            center: new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude),
-            zoom: 15,            
-            showMapTypeSelector:false,
-            fixedMapPosition:true
-          };          
-          //initialize map
-          map = new Microsoft.Maps.Map(mapView, mapOptions);
-          
-          //add pin
-          var pin = new Microsoft.Maps.Pushpin(map.getCenter(), {draggable : false});
-          map.entities.push(pin);
-          currentPosition = new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude);
-          
-          
-        }      
+        navigator.geolocation.getCurrentPosition(onCurrentLocSuccess, mapError,{ maximumAge: 3000, timeout: 5000, enableHighAccuracy: true });        
+      }     
     });
   </script>
 </polymer-element>

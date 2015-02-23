@@ -16,6 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+var pos;
+var watchId = null;
+var map;
+var currentRoute;
+var currentPosition;
+var isRouting = false;
+
 var app = {
     // Application Constructor
     initialize: function() {
@@ -26,24 +33,49 @@ var app = {
     // Bind any events that are required on startup. Common events are:
     // 'load', 'deviceready', 'offline', and 'online'.
     bindEvents: function() {
-        document.addEventListener('deviceready', this.onDeviceReady, false);
+        this.bindButtons();
+        document.addEventListener('deviceready', this.onDeviceReady, false);        
     },
     // deviceready Event Handler
     //
     // The scope of 'this' is the event. In order to call the 'receivedEvent'
     // function, we must explicitly call 'app.receivedEvent(...);'
     onDeviceReady: function() {
-        app.receivedEvent('deviceready');
+        var options = {timeout : 10000};
+        watchId = navigator.geolocation.watchPosition(app.onLocationChangeSuccess, onLocationChangeError, options);
+    },
+    onLocationChangeSuccess: function(position)
+    {
+        alert('location change called');
+        viewOptions = new Microsoft.Maps.ViewOptions(
+            {
+                animate : true,
+                center : new Microsoft.Maps.Location(position.coords.latitude, position.coords.longitude),
+                zoom :15
+            });
+
+        if(map!=null)
+        {
+            map.setView(viewOptions);
+        }
+    },
+    onLocationChangeError: function (error)
+    {
+          alert('code: '    + error.code    + '\n' +
+                  'message: ' + error.message + '\n');
     },
     // Update DOM on a Received Event
-    receivedEvent: function(id) {
-        var parentElement = document.getElementById(id);
-        var listeningElement = parentElement.querySelector('.listening');
-        var receivedElement = parentElement.querySelector('.received');
-
-        listeningElement.setAttribute('style', 'display:none;');
-        receivedElement.setAttribute('style', 'display:block;');
-
-        console.log('Received Event: ' + id);
+    bindButtons: function() {
+        var pages = document.querySelector('core-animated-pages');
+        var mapButton = document.getElementById('mapButton');
+        var routeButton = document.getElementById('routeDetailButton');
+        mapButton.addEventListener('click', function()
+        {
+            pages.selected = 0;
+        });
+        routeButton.addEventListener('click', function()
+        {
+            pages.selected = 1;
+        });
     }
 };

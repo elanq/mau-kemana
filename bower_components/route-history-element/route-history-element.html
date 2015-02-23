@@ -1,0 +1,32 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<polymer-element name="route-history-element">  
+  <template>
+    <style>
+      .card {
+        background: #ffffff;
+        padding: 15px;
+        margin: 1em 10px 15px 10px;
+        box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.26);
+        border-radius: 2px;
+      }
+      .route-container{
+        padding : 2em 0 1.5em 3em;
+      }    
+    </style>    
+
+    <div id="routeHistory" class="route-container">
+      
+    </div>
+  </template>
+  <script>
+      var routeHistory;
+      Polymer({
+        
+        ready: function()
+        { 
+          routeHistory = this.$.routeHistory;
+        }
+      });
+    </script>
+</polymer-element>

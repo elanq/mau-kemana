@@ -2,8 +2,10 @@
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../core-label/core-label.html">
 <link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-toast/paper-toast.html">
 <link rel="import" href="../paper-checkbox/paper-checkbox.html">
 <link rel="import" href="../core-ajax/core-xhr.html">
+<!-- <link rel="import" href="../route-history-element/route-history-element.html"> -->
 
 <polymer-element name="route-element">
 <template>
@@ -27,15 +29,62 @@
       background-color: #2196F3;
       border-color: #2196F3;
     }
+    .route-container{
+      padding : 2em 0 1.5em 3em;
+    }    
+    .spinner {
+      width: 40px;
+      height: 40px;
+
+      position: relative;
+      margin: 100px auto;
+    }
+
+    .double-bounce1, .double-bounce2 {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background-color: #000;
+      opacity: 0.6;
+      position: absolute;
+      top: 0;
+      left: 0;
+      
+      -webkit-animation: bounce 2.0s infinite ease-in-out;
+      animation: bounce 2.0s infinite ease-in-out;
+    }
+
+    .double-bounce2 {
+      -webkit-animation-delay: -1.0s;
+      animation-delay: -1.0s;
+    }
+
+    @-webkit-keyframes bounce {
+      0%, 100% { -webkit-transform: scale(0.0) }
+      50% { -webkit-transform: scale(1.0) }
+    }
+
+    @keyframes bounce {
+      0%, 100% { 
+        transform: scale(0.0);
+        -webkit-transform: scale(0.0);
+      } 50% { 
+        transform: scale(1.0);
+        -webkit-transform: scale(1.0);
+      }
+    }
+    .hidden{
+      display : none;
+    }
 </style>
 <div class="card">
     <core-xhr id="xhr"></core-xhr>
-    <h4>Search location</h4>
+    <h2>Search location</h2>
     <paper-input-decorator flex label="Start">
       <input is="core-input" id="startLocation" floatinglabel>      
     </paper-input-decorator>
     <core-label horizontal layout>
-        <paper-checkbox for id="locationCheckbox" on-click="{{onLocChange}}"></paper-checkbox>
+        <paper-checkbox class="blue" for id="locationCheckbox" on-tap="{{onLocChange}}"></paper-checkbox>
         <div vertical layout>
           <h4>USE DEVICE CURRENT LOCATION</h4>        
         </div>
@@ -44,12 +93,35 @@
       <input is="core-input"  id="finishLocation">
     </paper-input-decorator>
 
+    <paper-toast id="tesToast" text="Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ipsam nihil alias eos facere esse, qui vitae, veniam obcaecati quos dignissimos distinctio. Laudantium natus suscipit praesentium error, architecto quae consectetur accusamus." ></paper-toast>
+
     <paper-button id="searchButton"  on-click="{{searchClicked}}" class="ok-button">SEARCH</paper-button>
     <paper-button id="cancelButton" on-click="{{cancelClicked}}" class="cancel-button">CANCEL</paper-button/>
 </div>
-<div class="card" id="routes">
 
+<div class="card" id="routes">
+  <h2>Route Details</h2> 
+  <p id="routeStatus">NO DATA TO DISPLAY</p>
+  <div class="spinner hidden" id="loadingElement">
+    <div class="double-bounce1"></div>
+    <div class="double-bounce2"></div>
+  </div>
+  <template repeat="{{step in routeSteps}}">
+    <h3>{{step[0]}}</h3>
+    <p>{{step[3]}}</p>
+  </template>
+  <!-- <div class="route-container">
+    <h3>Route Title</h3>
+    <p>Route description</p>
+  </div>
+  <div class="route-container">
+    <h3>Route Title</h3>
+    <p>Route description</p>
+  </div> -->  
 </div>
+<div class="route-container">
+    Maps by Microsoft Bing and Angkot Route by Kiri Project
+  </div>
 </template>
 <script>
     var xhr;
@@ -58,12 +130,17 @@
     var locationCheckbox;
     var startPosition;
     var finishPosition;
+    var routeSteps = new Array();
+    var loadingElement;
+    var routeStatus;
 
     var searchResult;
 
     var onStartLocationSearch;
     var onFinishLocationSearch;
-    var onRoute;
+    var onRoute;    
+
+    var testToast;
     Polymer({
     ready: function()
     {
@@ -71,48 +148,68 @@
       startInput = this.$.startLocation;
       finishInput = this.$.finishLocation;
       locationCheckbox = this.$.locationCheckbox;
+      this.routeSteps = routeSteps;
+      loadingElement = this.$.loadingElement;
+      routeStatus = this.$.routeStatus;
 
       onStartLocationSearch = this.onStartLocationSearch;
       onFinishLocationSearch = this.onFinishLocationSearch;
-      onRoute = this.onRoute;
+      onRoute = this.onRoute;      
+
+      testToast = this.$.tesToast;
     },    
     onRoute : function(e)
     {
         //clear any elements
+        var colorCarrot = new Microsoft.Maps.Color(200,230, 126, 34);
+        var colorRed = new Microsoft.Maps.Color(200,231, 76, 60);
+        var colorBlue = new Microsoft.Maps.Color(200,52, 152, 219);
+        routeSteps.length =0;
         map.entities.clear();
 
         var routes = new Array();
         var res = JSON.parse(e);
         var routing;
+        alert(res);
         if(res.status=="ok")
         {
           routing = res.routingresults[0];
+          loadingElement.classList.add('hidden');          
           for(var i=0;i<routing.steps.length;i++)
           {
             for(var j=0;j<routing.steps[i][2].length; j++)
             {              
-              var route = routing.steps[i][2][j];
+              var route = routing.steps[i][2][j];              
               var temp = route.split(',');
               var lat = temp[0];
-              var lng = temp[1];
+              var lng = temp[1];              
               routes.push(new Microsoft.Maps.Location(lat, lng));
               //add some cards in route view              
             }
+            console.log(routing.steps[i]);
+            //push router details here
+            routeSteps.push(routing.steps[i]);
           }
           //add polyline          
-          var routeLine = new Microsoft.Maps.Polyline(routes);          
+          var routeLine = new Microsoft.Maps.Polyline(routes , {strokeColor : colorRed, strokeThickness:5});          
           map.entities.push(routeLine);
+          //add start infobox
+          var startInfobox = new Microsoft.Maps.Infobox(routes[0], {title : "Start position"});
+          var endInfobox = new Microsoft.Maps.Infobox(routes[routes.length-1], {title : "End position"});
           //add start pin
-          var startPin = new Microsoft.Maps.Pushpin(routes[0], {draggable : false});
+          var startPin = new Microsoft.Maps.Pushpin(routes[0], {draggable : false, infobox : startInfobox});
           map.entities.push(startPin);
           //add finish pin
-          var finishPin = new Microsoft.Maps.Pushpin(routes[routes.length-1], {draggable : false});
+          var finishPin = new Microsoft.Maps.Pushpin(routes[routes.length-1], {draggable : false, infobox : endInfobox});
           map.entities.push(finishPin);
           var currentRoute = routing.steps;
         }   
     },
     searchClicked: function()
     {
+      routeStatus.className = 'hidden'
+      loadingElement.className = 'spinner';
+      routeSteps.length =0;
       if(!locationCheckbox.checked)
       {
         var startQuery = startInput.value;                
@@ -154,28 +251,41 @@
           xhr.request(requestOptions);          
       }            
     },
-    onLocChange : function()
+    onLocChange : function(event, detail, sender)
     {
-      if(locationCheckbox.checked)
+      console.log("initial checkbox : "+locationCheckbox.checked);      
+      if(!locationCheckbox.checked)
       {
         startInput.disabled = 0;        
       }else{
         startInput.disabled = 1;
         startPosition = currentPosition;
+        testToast.text = "Your current position is "+startPosition;
+        testToast.show();        
       }      
+      console.log("end checkbox : "+locationCheckbox.checked);
     },
     onStartLocationSearch : function(e)
     {      
       var res = JSON.parse(e);
       console.log(res);
       if(res.status=="ok")
-      {
+      {        
         searchResult = res.searchresult[0];        
-        startInput.value = searchResult.placename;
-        var temp = searchResult.location.split(',');
-        var lat = temp[0];
-        var lng = temp[1];
-        startPosition = new Microsoft.Maps.Location(lat, lng);
+        if(res.searchresult.length<=0)
+        {
+          testToast.text("Start position location not found");
+          testToast.show();        
+          startInput.value = "";
+          loadingElement.classList.add('hidden');          
+        }else{
+          startInput.value = searchResult.placename;
+          var temp = searchResult.location.split(',');
+          var lat = temp[0];
+          var lng = temp[1];
+          startPosition = new Microsoft.Maps.Location(lat, lng);  
+        }
+        
       }
     },
     onFinishLocationSearch : function(e)
@@ -184,18 +294,24 @@
       console.log(res);
       if(res.status=="ok")
       {
-        searchResult = res.searchresult[0];        
-        finishInput.value = searchResult.placename;
-        var temp = searchResult.location.split(',');
-        var lat = temp[0];
-        var lng = temp[1];
-        finishPosition = new Microsoft.Maps.Location(lat, lng);
-
+        searchResult = res.searchresult[0]; 
+        if(res.searchresult.length<=0)
+        {
+          alert("Location not found");
+          finishInput.value = "";
+          loadingElement.classList.add('hidden');          
+        }else{
+          finishInput.value = searchResult.placename;
+          var temp = searchResult.location.split(',');
+          var lat = temp[0];
+          var lng = temp[1];
+          finishPosition = new Microsoft.Maps.Location(lat, lng);
+        }             
         //request for routing
         var params = {
               version : 2,
               mode : "findroute",
-              locale : "id",
+              locale : "en",
               presentation : "desktop",
               apikey : "EA38EE71463C270",
               start : startPosition.latitude+","+startPosition.longitude,

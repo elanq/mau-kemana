@@ -24,21 +24,36 @@
         <meta charset="utf-8" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="msapplication-tap-highlight" content="no" />
+        <script type="text/javascript" src="bower_components/webcomponentsjs/webcomponents.min.js"></script>        
         <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
         <link rel="stylesheet" type="text/css" href="css/index.css" />
-        <title>Hello World</title>
+        <link rel="import" href="element.html"/>
+        <title>MauKemana?</title>
     </head>
-    <body>
-        <div class="app">
-            <h1>PhoneGap</h1>
-            <div id="deviceready" class="blink">
-                <p class="event listening">Connecting to Device</p>
-                <p class="event received">Device is Ready</p>
-            </div>
-        </div>
+    <body fullbleed vertical layout unresolved>
+        <core-header-panel navigation flex mode="waterfall" main>
+            <core-toolbar id="mainheader">                            
+              <paper-tabs class="bottom fit" selected="0">
+                <paper-tab id="mapButton">MAP</paper-tab>
+                <paper-tab id="routeDetailButton">ROUTE</paper-tab>
+              </paper-tabs>
+            </core-toolbar>
+
+            <core-animated-pages transitions="slide-from-right">                
+                <section class="content map-container">
+                    <map-element></map-element>                    
+                </section>
+                <section class="content">
+                    <route-element></route-element>
+                </section>
+            </core-animated-pages>
+
+        </core-header-panel>  
+        <script type="text/javascript" src="https://ecn.dev.virtualearth.net/mapcontrol/mapcontrol.ashx?v=7.0&s=1"></script>
         <script type="text/javascript" src="cordova.js"></script>
         <script type="text/javascript" src="js/index.js"></script>
+
         <script type="text/javascript">
             app.initialize();
         </script>
